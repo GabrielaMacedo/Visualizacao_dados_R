@@ -2,7 +2,7 @@ Esse código foi copiado do site *databrewer* com o intuito de adaptar com as vi
 
 *Código original: *https://www.databrewer.co/R/gallery/ggplot2-dumbell-plot-votes-Trump-Clinton*
 
-![Votacao_demografica](C:/Users/g_mac/OneDrive/Documentos/00_Projetos_Compartilhados/00_Visulizalizacao_de_dados/R/Votacao_demografica/Votacao_demografica.png)
+![Votacao_demografica](https://github.com/GabrielaMacedo/Visualizacao_dados_R/blob/master/Votacao_demografica/Votacao_demografica.png)
 
 ### Comparações Possíveis no Contexto de Mercado Financeiro, Cartões de Crédito e Seguros
 
