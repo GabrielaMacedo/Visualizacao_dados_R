@@ -2,7 +2,7 @@ Esse código foi copiado do site *databrewer* com o intuito de adaptar com as vi
 
 *Código original: https://www.databrewer.co/R/gallery/ggplot2-line-plot-cigarettes*
 
-![Mudanca_popularidade_tabagismo](C:/Users/g_mac/OneDrive/Documentos/00_Projetos_Compartilhados/00_Visulizalizacao_de_dados/R/Mudanca_popularidade_tabagismo/Mudanca_popularidade_tabagismo.png)
+![Mudanca_popularidade_tabagismo](https://github.com/GabrielaMacedo/Visualizacao_dados_R/blob/master/Mudanca_popularidade_tabagismo/Mudanca_popularidade_tabagismo.png)
 
 ### Comparações Possíveis no Contexto de Mercado Financeiro, Cartões de Crédito e Seguros
 
