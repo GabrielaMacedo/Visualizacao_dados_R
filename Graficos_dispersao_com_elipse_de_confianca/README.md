@@ -2,7 +2,7 @@ Esse código foi copiado do site *databrewer* com o intuito de adaptar com as vi
 
 *Código original:  https://www.databrewer.co/R/gallery/ggplot2-penguin-scatterplot-ellipse-ggExtra*
 
-![Graficos_dispersao_com_elipse_de_confianca](C:/Users/g_mac/OneDrive/Documentos/00_Projetos_Compartilhados/00_Visulizalizacao_de_dados/R/Graficos_dispersao_com_elipse_de_confianca/Graficos_dispersao_com_elipse_de_confianca.png)
+![Graficos_dispersao_com_elipse_de_confianca](https://github.com/GabrielaMacedo/Visualizacao_dados_R/blob/master/Graficos_dispersao_com_elipse_de_confianca/Graficos_dispersao_com_elipse_de_confianca.png)
 
 ### Comparações Possíveis no Contexto de Mercado Financeiro, Cartões de Crédito e Seguros
 
