@@ -4,7 +4,7 @@ Nesse repositório você encontrará códigos autorais e também extraídos da c
 
 Abaixo está a visualização dos códigos deste repositório.
 
-![Gráficos Disponíveis](C:/Users/g_mac/OneDrive/Documentos/00_Projetos_Compartilhados/00_Visulizalizacao_de_dados/R/visualizacao.png)
+![Gráficos Disponíveis](https://github.com/GabrielaMacedo/Visualizacao_dados_R/blob/master/visualizacao.png)
 
 
 
