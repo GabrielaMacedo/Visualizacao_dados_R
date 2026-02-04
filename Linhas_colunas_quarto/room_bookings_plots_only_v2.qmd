@@ -1,0 +1,250 @@
+---
+title: ""
+format:
+  revealjs:
+    theme: simple
+    slide-number: false
+    center: false
+    transition: none
+    width: 1280
+    height: 720
+    scrollable: false
+    embed-resources: true
+execute:
+  echo: false
+  message: false
+  warning: false
+include-in-header:
+  text: |
+    <style>
+      .topbar{
+        background:#0B4F7A;
+        color:#ffffff;
+        font-size:40px;
+        font-weight:700;
+        padding:18px 28px;
+        border-radius:6px;
+        margin-bottom:18px;
+      }
+      .section-title{
+        font-size:18px;
+        font-weight:800;
+        letter-spacing:0.2px;
+        margin: 0 0 8px 0;
+        text-transform: uppercase;
+      }
+      .body-text{
+        font-size:16px;
+        line-height:1.25;
+        color:#2b2b2b;
+      }
+      .hl-blue{ color:#1f77b4; font-weight:700; }
+      .hl-orange{ color:#ff7f0e; font-weight:700; }
+      .recommendation{
+        margin-top:10px;
+        font-size:16px;
+      }
+      .recommendation b{
+        font-weight:900;
+      }
+      .panel{
+        padding: 6px 10px;
+      }
+      .reveal .slides{
+        text-align:left;
+      }
+      .reveal section{
+        overflow: hidden;
+      }
+    </style>
+---
+
+```{r}
+#| include: false
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(tibble)
+
+has_ggrepel <- requireNamespace("ggrepel", quietly = TRUE)
+```
+
+## {.custom-slide}
+
+<div class="topbar">Room bookings up but some areas of concern</div>
+
+::: columns
+::: {.column width="50%"}
+<div class="panel">
+
+<div class="section-title">Regional split to be reviewed</div>
+
+<div class="body-text">
+Room bookings for hotels <span class="hl-blue">based in the south</span> have increased compared with 2019.
+It is the opposite for our <span class="hl-orange">northern hotels</span> who are still struggling to recover bookings following the pandemic.
+</div>
+
+<div class="recommendation body-text">
+<b>RECOMMENDATION:</b> Understand and share best practices from <span class="hl-blue">south based</span> hotels to increase room bookings in the <span class="hl-orange">north</span>.
+</div>
+
+```{r}
+#| include: false
+df_city_change <- tribble(
+  ~city,         ~region, ~pct_change_2022,
+  "Cardiff",     "South",  0.45,
+  "Oxford",      "South",  0.22,
+  "London",      "South",  0.18,
+  "Portsmouth",  "South",  0.14,
+  "Bristol",     "South",  0.08,
+  "Newcastle",   "North", -0.10,
+  "Leeds",       "North", -0.16,
+  "Liverpool",   "North", -0.21,
+  "York",        "North", -0.28,
+  "Manchester",  "North", -0.42
+)
+
+df_line <- df_city_change |>
+  expand_grid(year = c(2019, 2022)) |>
+  mutate(pct_change = ifelse(year == 2019, 0, pct_change_2022)) |>
+  arrange(city, year)
+
+pal_region <- c("South" = "#1f77b4", "North" = "#ff7f0e")
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 3.2
+#| dpi: 160
+#| out-width: "100%"
+p1 <- ggplot(df_line, aes(x = year, y = pct_change, group = city, color = region)) +
+  geom_hline(yintercept = 0, linewidth = 0.4, alpha = 0.6) +
+  geom_line(linewidth = 1.2, alpha = 0.95) +
+  geom_point(size = 2) +
+  scale_color_manual(values = pal_region) +
+  scale_x_continuous(breaks = c(2019, 2022), limits = c(2019, 2022.6)) +
+  scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(-0.55, 0.55)) +
+  labs(
+    title = "Hotel room booking comparison between 2019 and 2022",
+    subtitle = "south region vs north region",
+    x = NULL, y = "Change vs 2019"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", size = 13),
+    plot.subtitle = element_text(size = 11),
+    panel.grid.minor = element_blank()
+  )
+
+df_end <- df_line |> filter(year == 2022)
+
+if (has_ggrepel) {
+  p1 <- p1 +
+    ggrepel::geom_label_repel(
+      data = df_end,
+      aes(label = city),
+      size = 3.2,
+      label.size = 0,
+      fill = "white",
+      alpha = 0.9,
+      box.padding = 0.25,
+      point.padding = 0.20,
+      nudge_x = 0.35,
+      direction = "y",
+      segment.size = 0.2,
+      min.segment.length = 0,
+      seed = 7
+    )
+} else {
+  p1 <- p1 +
+    geom_label(
+      data = df_end,
+      aes(label = city),
+      size = 3.0,
+      label.size = 0,
+      fill = "white",
+      alpha = 0.9,
+      hjust = 0,
+      nudge_x = 0.05,
+      show.legend = FALSE
+    )
+}
+
+p1
+```
+
+</div>
+:::
+
+::: {.column width="50%"}
+<div class="panel">
+
+<div class="section-title">Reduction of single rooms in London area</div>
+
+<div class="body-text">
+<span class="hl-blue">Single room bookings in London</span> have reduced by <b>81%</b> since 2019.
+This is due to the increased amount of hybrid working, reduced time in the office with the need to stay overnight.
+</div>
+
+<div class="recommendation body-text">
+<b>RECOMMENDATION:</b> Explore the creation of an incentive scheme to reward business travellers back to London.
+</div>
+
+```{r}
+#| include: false
+single_2019 <- 64
+single_2022 <- round(single_2019 * (1 - 0.81))
+
+df_london <- tribble(
+  ~year, ~room_type,     ~bookings,
+  2019,  "Single room",  single_2019,
+  2019,  "Double room",  180,
+  2019,  "Twin room",    55,
+  2019,  "Family room",  40,
+  2019,  "Suite",        15,
+  2022,  "Single room",  single_2022,
+  2022,  "Double room",  210,
+  2022,  "Twin room",    60,
+  2022,  "Family room",  45,
+  2022,  "Suite",        17
+)
+
+fill_map <- c(
+  "Single room" = "#1f77b4",
+  "Double room" = "grey75",
+  "Twin room"   = "grey65",
+  "Family room" = "grey55",
+  "Suite"       = "grey45"
+)
+
+df_london <- df_london |>
+  mutate(room_type = factor(room_type, levels = c("Single room","Double room","Twin room","Family room","Suite")))
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 3.2
+#| dpi: 160
+#| out-width: "100%"
+p2 <- ggplot(df_london, aes(x = factor(year), y = bookings, fill = room_type)) +
+  geom_col(width = 0.55) +
+  scale_fill_manual(values = fill_map) +
+  labs(
+    title = "Room booking comparison: London",
+    x = NULL, y = "Bookings", fill = NULL
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(face = "bold", size = 13),
+    panel.grid.minor = element_blank()
+  )
+
+p2
+```
+
+</div>
+:::
+:::

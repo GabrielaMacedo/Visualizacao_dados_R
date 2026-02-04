@@ -1,0 +1,304 @@
+---
+title: "2020 monthly error rate by site"
+format:
+  html:
+    embed-resources: true
+    page-layout: full
+    toc: false
+execute:
+  echo: false
+  message: false
+  warning: false
+include-in-header:
+  text: |
+    <style>
+      /* Layout geral tipo "relatório" (sem limite de altura como slide) */
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      h1.title { font-size: 34px; font-weight: 800; margin: 10px 0 14px 0; }
+
+      .row-wrap{
+        display: grid;
+        grid-template-columns: 78px 1fr;
+        column-gap: 16px;
+        align-items: stretch;
+        margin: 10px 0 18px 0;
+      }
+
+      .row-label{
+        border-radius: 10px;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        color:white;
+        font-weight:900;
+        letter-spacing: 1px;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-size: 18px;
+        padding: 10px 0;
+      }
+
+      .label-success{ background:#2F66B3; }
+      .label-status{ background:#7A7A7A; }
+      .label-watch{ background:#F07D2B; }
+
+      /* deixa o conteúdo bem largo, como dashboard */
+      main.content{
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      /* reduz espaços extras do quarto */
+      .cell-output-display { margin: 0; }
+      p { margin: 0.2rem 0; }
+    </style>
+---
+
+```{r}
+#| include: false
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(tibble)
+library(patchwork)
+
+has_ggrepel <- requireNamespace("ggrepel", quietly = TRUE)
+```
+
+```{r}
+#| include: false
+# -----------------------------
+# DATAFRAME FAKE
+# -----------------------------
+df <- tribble(
+  ~site,  ~group,        ~month, ~err,
+  "H",    "SUCCESS",     "JAN",  0.0025,
+  "H",    "SUCCESS",     "FEB",  0.0032,
+  "H",    "SUCCESS",     "MAR",  0.0050,
+  "H",    "SUCCESS",     "APR",  0.0020,
+  "H",    "SUCCESS",     "MAY",  0.0010,
+  "H",    "SUCCESS",     "JUN",  0.0006,
+
+  "E",    "SUCCESS",     "JAN",  0.0003,
+  "E",    "SUCCESS",     "FEB",  0.0008,
+  "E",    "SUCCESS",     "MAR",  0.0002,
+  "E",    "SUCCESS",     "APR",  0.0015,
+  "E",    "SUCCESS",     "MAY",  0.0007,
+  "E",    "SUCCESS",     "JUN",  0.0004,
+
+  "B",    "SUCCESS",     "JAN",  0.0006,
+  "B",    "SUCCESS",     "FEB",  0.0025,
+  "B",    "SUCCESS",     "MAR",  0.0009,
+  "B",    "SUCCESS",     "APR",  0.0008,
+  "B",    "SUCCESS",     "MAY",  0.0010,
+  "B",    "SUCCESS",     "JUN",  0.0007,
+
+  "C",    "STATUS QUO",  "JAN",  0.0075,
+  "C",    "STATUS QUO",  "FEB",  0.0045,
+  "C",    "STATUS QUO",  "MAR",  0.0032,
+  "C",    "STATUS QUO",  "APR",  0.0018,
+  "C",    "STATUS QUO",  "MAY",  0.0025,
+  "C",    "STATUS QUO",  "JUN",  0.0025,
+
+  "G",    "STATUS QUO",  "JAN",  0.0010,
+  "G",    "STATUS QUO",  "FEB",  0.0011,
+  "G",    "STATUS QUO",  "MAR",  0.0009,
+  "G",    "STATUS QUO",  "APR",  0.0010,
+  "G",    "STATUS QUO",  "MAY",  0.0011,
+  "G",    "STATUS QUO",  "JUN",  0.0010,
+
+  "F",    "STATUS QUO",  "JAN",  0.0002,
+  "F",    "STATUS QUO",  "FEB",  0.0007,
+  "F",    "STATUS QUO",  "MAR",  0.0001,
+  "F",    "STATUS QUO",  "APR",  0.0004,
+  "F",    "STATUS QUO",  "MAY",  0.0002,
+  "F",    "STATUS QUO",  "JUN",  0.0002,
+
+  "D",    "WATCH",       "JAN",  0.0008,
+  "D",    "WATCH",       "FEB",  0.0004,
+  "D",    "WATCH",       "MAR",  0.0012,
+  "D",    "WATCH",       "APR",  0.0005,
+  "D",    "WATCH",       "MAY",  0.0006,
+  "D",    "WATCH",       "JUN",  0.0016,
+
+  "I",    "WATCH",       "JAN",  0.0012,
+  "I",    "WATCH",       "FEB",  0.0001,
+  "I",    "WATCH",       "MAR",  0.0000,
+  "I",    "WATCH",       "APR",  0.0000,
+  "I",    "WATCH",       "MAY",  0.0001,
+  "I",    "WATCH",       "JUN",  0.0013,
+
+  "A",    "WATCH",       "JAN",  0.0006,
+  "A",    "WATCH",       "FEB",  0.0007,
+  "A",    "WATCH",       "MAR",  0.0005,
+  "A",    "WATCH",       "APR",  0.0004,
+  "A",    "WATCH",       "MAY",  0.0003,
+  "A",    "WATCH",       "JUN",  0.0011
+) |>
+  mutate(
+    month = factor(month, levels = c("JAN","FEB","MAR","APR","MAY","JUN")),
+    group = factor(group, levels = c("SUCCESS","STATUS QUO","WATCH"))
+  )
+
+site_cfg <- tribble(
+  ~site, ~title_color, ~highlight_from, ~highlight_point_month,
+  "H",   "#2F66B3",     "MAR",          "MAR",
+  "E",   "#2F66B3",     "APR",          NA,
+  "B",   "#2F66B3",     "FEB",          NA,
+  "C",   "#6E6E6E",     NA,             NA,
+  "G",   "#6E6E6E",     NA,             NA,
+  "F",   "#6E6E6E",     NA,             NA,
+  "D",   "#F07D2B",     "MAY",          "JUN",
+  "I",   "#F07D2B",     "MAY",          "JUN",
+  "A",   "#F07D2B",     "MAY",          "JUN"
+)
+
+pal <- list(
+  base = "#7a7a7a",
+  success = "#2F66B3",
+  watch = "#F07D2B"
+)
+
+ann <- tribble(
+  ~site, ~x,   ~y,     ~label, ~color,
+  "H",   "MAR", 0.0078, "Possibly add annotation to explain\ncontext around high error rate\nand subsequent decrease", "#808080",
+  "C",   "FEB", 0.0078, "Add context about high error rate\nand what has been done to\nreduce over time.", "#808080",
+  "B",   "APR", 0.0078, "If it's important, you could explain why\nerror rate was higher in Feb, though\nthings have improved a lot since", "#808080",
+  "D",   "APR", 0.0058, "What's leading to the increase in\nerror rate, is is a cause for concern?\nYou could explain it here.", "#F07D2B"
+)
+
+final_labels <- df |>
+  filter(group == "WATCH", month == "JUN") |>
+  mutate(lbl = percent(err, accuracy = 0.01))
+```
+
+```{r}
+#| include: false
+make_site_plot <- function(site_id){
+
+  d <- df |> filter(site == site_id)
+  cfg <- site_cfg |> filter(site == site_id)
+
+  p <- ggplot(d, aes(x = month, y = err, group = 1)) +
+    geom_line(linewidth = 1.5, color = pal$base) +
+    scale_y_continuous(
+      limits = c(0, 0.008),
+      breaks = seq(0, 0.008, by = 0.001),
+      labels = percent_format(accuracy = 0.1)
+    ) +
+    labs(title = paste0("Site ", site_id), x = NULL, y = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(
+      plot.title = element_text(face = "bold", color = cfg$title_color, size = 14, margin = margin(b = 2)),
+      panel.grid.minor = element_blank(),
+      axis.text.x = element_text(size = 9, color = "#6b6b6b"),
+      axis.text.y = element_text(size = 9, color = "#6b6b6b"),
+      plot.margin = margin(6, 8, 6, 8)
+    )
+
+  if (!is.na(cfg$highlight_from)) {
+    hl_from <- cfg$highlight_from
+    d_hl <- d |> filter(as.integer(month) >= as.integer(factor(hl_from, levels = levels(df$month))))
+
+    hl_col <- if (site_id %in% c("H","E","B")) pal$success else pal$watch
+    p <- p + geom_line(data = d_hl, linewidth = 1.9, color = hl_col)
+
+    if (!is.na(cfg$highlight_point_month)) {
+      d_pt <- d |> filter(month == cfg$highlight_point_month)
+      p <- p + geom_point(data = d_pt, size = 3.0, color = hl_col)
+    }
+  }
+
+  a <- ann |> filter(site == site_id)
+  if (nrow(a) > 0) {
+    p <- p + annotate(
+      "text",
+      x = a$x[1], y = a$y[1],
+      label = a$label[1],
+      color = a$color[1],
+      hjust = 0, vjust = 1,
+      size = 3.1
+    )
+  }
+
+  if (site_id %in% c("D","I","A")) {
+    fl <- final_labels |> filter(site == site_id)
+    p <- p +
+      geom_point(data = fl, aes(x = month, y = err), size = 3.0, color = pal$watch) +
+      annotate("text", x = "JUN", y = fl$err + 0.00065, label = fl$lbl, color = pal$watch,
+               size = 3.2, fontface = "bold", hjust = 0.5)
+  }
+
+  p <- p + coord_cartesian(clip = "off")
+  return(p)
+}
+
+pH <- make_site_plot("H")
+pE <- make_site_plot("E")
+pB <- make_site_plot("B")
+
+pC <- make_site_plot("C")
+pG <- make_site_plot("G")
+pF <- make_site_plot("F")
+
+pD <- make_site_plot("D")
+pI <- make_site_plot("I")
+pA <- make_site_plot("A")
+
+row_success <- pH + pE + pB + plot_layout(ncol = 3)
+row_status  <- pC + pG + pF + plot_layout(ncol = 3)
+row_watch   <- pD + pI + pA + plot_layout(ncol = 3)
+```
+
+<div class="row-wrap">
+  <div class="row-label label-success">SUCCESS</div>
+  <div>
+```{r}
+#| fig-width: 13.0
+#| fig-height: 2.25
+#| dpi: 200
+#| out-width: "100%"
+row_success
+```
+  </div>
+</div>
+
+<div class="row-wrap">
+  <div class="row-label label-status">STATUS QUO</div>
+  <div>
+```{r}
+#| fig-width: 13.0
+#| fig-height: 2.25
+#| dpi: 200
+#| out-width: "100%"
+row_status
+```
+  </div>
+</div>
+
+<div class="row-wrap">
+  <div class="row-label label-watch">WATCH</div>
+  <div>
+```{r}
+#| fig-width: 13.0
+#| fig-height: 2.25
+#| dpi: 200
+#| out-width: "100%"
+row_watch
+```
+  </div>
+</div>
+
+```{r}
+#| eval: false
+# -----------------------------
+# OPCIONAL: exportar uma imagem única (PNG) do "relatório"
+# (executar localmente no RStudio)
+# -----------------------------
+# install.packages("ragg")
+# library(ragg)
+# ragg::agg_png("monthly_error_rate_by_site.png", width = 1600, height = 1150, res = 144)
+# print(row_success / row_status / row_watch)
+# dev.off()
+```

@@ -1,0 +1,307 @@
+---
+title: ""
+format:
+  revealjs:
+    theme: simple
+    slide-number: false
+    center: false
+    transition: none
+    width: 1280
+    height: 720
+    scrollable: false
+    embed-resources: true
+execute:
+  echo: false
+  message: false
+  warning: false
+include-in-header:
+  text: |
+    <style>
+      .reveal .slides{ text-align:left; }
+      .reveal section{ overflow: hidden; }
+
+      .topbar{
+        background:#2FA892;
+        color:#ffffff;
+        font-size:44px;
+        font-weight:800;
+        padding:18px 28px;
+        border-radius:0px;
+        margin: 0 0 14px 0;
+      }
+
+      .section-title{
+        font-size:18px;
+        font-weight:900;
+        letter-spacing:0.2px;
+        margin: 0 0 8px 0;
+        text-transform: uppercase;
+      }
+
+      .body-text{
+        font-size:16px;
+        line-height:1.25;
+        color:#2b2b2b;
+        margin-bottom: 10px;
+      }
+
+      .hl-orange{ color:#F07D2B; font-weight:900; }
+
+      .bottombar{
+        margin-top: 14px;
+        background:#EDEDED;
+        color:#3a3a3a;
+        padding: 12px 18px;
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .reveal p{ margin: 0.2em 0; }
+    </style>
+---
+
+```{r}
+#| include: false
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(tibble)
+
+has_ggrepel <- requireNamespace("ggrepel", quietly = TRUE)
+```
+
+## {.custom-slide}
+
+<div class="topbar">More funding needed to complete projects on time</div>
+
+::: columns
+::: {.column width="50%"}
+<div class="section-title">Actual resources higher than plan</div>
+
+<div class="body-text">
+The total workforce allocation is <span class="hl-orange">1,026 FTE above the expected plan</span> as of the end of April 2024.
+The actual FTEs are 44% higher than expected, and an average is expected to continue for the remainder of the year.
+</div>
+
+```{r}
+#| include: false
+# -----------------------------
+# DATAFRAME FAKE (WORKFORCE: ACTUAL vs PLAN)
+# OBS: para ficar como o exemplo do slide, o "ACTUAL" só existe até APR-24.
+# Depois disso, só mantemos o PLAN (linha pontilhada).
+# -----------------------------
+months_1 <- c("Sep-23","Oct-23","Nov-23","Dec-23","Jan-24","Feb-24","Mar-24","Apr-24","May-24","Jun-24","Jul-24","Aug-24","Sep-24")
+
+plan <- c(120, 450, 410, 360, 310, 270, 200, 150, 150, 150, 150, 150, 150)
+
+# Diferenças escolhidas para somar 1,026 no período Sep-23..Apr-24
+diff_8 <- c(180, 80, 95, 110, 130, 150, 150, 131)  # soma = 1,026
+
+actual_8 <- plan[1:8] + diff_8
+
+df_workforce <- tibble(
+  month = factor(months_1, levels = months_1),
+  plan = plan,
+  actual = c(actual_8, rep(NA_real_, length(months_1) - 8))  # <- ACTUAL só até Apr
+)
+
+df_actual <- df_workforce |> filter(!is.na(actual)) |>
+  mutate(ymin = pmin(plan, actual), ymax = pmax(plan, actual))  # ribbon seguro
+
+total_overplan_8 <- df_workforce |>
+  mutate(over_plan = actual - plan) |>
+  filter(month %in% months_1[1:8]) |>
+  summarise(total = sum(over_plan, na.rm = TRUE)) |>
+  pull(total)
+```
+
+```{r}
+#| fig-width: 6.2
+#| fig-height: 3.3
+#| dpi: 180
+#| out-width: "100%"
+# -----------------------------
+# PLOT 1: Workforce actual vs plan by month
+# AJUSTE IMPORTANTE:
+# - o laranja é SOMENTE a área "acima do plano" (entre PLAN e ACTUAL),
+#   não uma área até o zero.
+# -----------------------------
+p1 <- ggplot() +
+  # Área do overrun (entre plan e actual)
+  geom_ribbon(
+    data = df_actual,
+    aes(x = month, ymin = ymin, ymax = ymax, group = 1),
+    fill = "#F07D2B", alpha = 0.70
+  ) +
+  # Linha ACTUAL (só até Apr-24)
+  geom_line(
+    data = df_actual,
+    aes(x = month, y = actual, group = 1),
+    color = "#D85A00", linewidth = 1.8
+  ) +
+  # Linha PLAN (até o fim)
+  geom_line(
+    data = df_workforce,
+    aes(x = month, y = plan, group = 1),
+    color = "#7A7A7A", linewidth = 1.3, linetype = "dashed"
+  ) +
+  scale_y_continuous(
+    limits = c(0, 600),
+    breaks = seq(0, 600, 50)
+  ) +
+  labs(
+    title = "Workforce: actual versus plan by month",
+    x = NULL, y = "# OF FTE"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(size = 9),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(6, 10, 6, 6)
+  )
+
+# Anotação principal
+p1 <- p1 +
+  annotate(
+    "text",
+    x = "Apr-24", y = 260,
+    label = paste0("ACTUAL SEP'23 to APR'24\n", format(total_overplan_8, big.mark=","), " FTE above plan"),
+    color = "#D85A00",
+    fontface = "bold",
+    hjust = 0, vjust = 1,
+    size = 3.3
+  ) +
+  annotate(
+    "text",
+    x = "Sep-24", y = 135,
+    label = "PLAN",
+    color = "#7A7A7A",
+    fontface = "bold",
+    hjust = 1,
+    size = 3.0
+  ) +
+  coord_cartesian(clip = "off")
+
+p1
+```
+
+:::
+::: {.column width="50%"}
+<div class="section-title">Ascent project causing 84% of overrun</div>
+
+<div class="body-text">
+Most projects were close to plan expectations (within 20 FTE of the monthly estimate).
+However, the <b>Ascent project is markedly over plan</b> due to a major scope change requiring additional workforce support.
+</div>
+
+```{r}
+#| include: false
+# -----------------------------
+# DATAFRAME FAKE (FTE over plan by project)
+# -----------------------------
+months_2 <- c("Sep-23","Oct-23","Nov-23","Dec-23","Jan-24","Feb-24")
+
+df_proj <- tribble(
+  ~project,   ~month,   ~fte_over_plan,
+  "ASCENT",   "Sep-23", 190,
+  "ASCENT",   "Oct-23",  50,
+  "ASCENT",   "Nov-23",  70,
+  "ASCENT",   "Dec-23", 110,
+  "ASCENT",   "Jan-24", 140,
+  "ASCENT",   "Feb-24", 145,
+
+  "CATALYST", "Sep-23",  12,
+  "CATALYST", "Oct-23",  14,
+  "CATALYST", "Nov-23",  16,
+  "CATALYST", "Dec-23",  12,
+  "CATALYST", "Jan-24",  14,
+  "CATALYST", "Feb-24",  10,
+
+  "ODYSSEY",  "Sep-23",  -5,
+  "ODYSSEY",  "Oct-23",  -2,
+  "ODYSSEY",  "Nov-23",   0,
+  "ODYSSEY",  "Dec-23",  -1,
+  "ODYSSEY",  "Jan-24",  -3,
+  "ODYSSEY",  "Feb-24",  -6
+) |>
+  mutate(
+    month = factor(month, levels = months_2),
+    project = factor(project, levels = c("ASCENT","CATALYST","ODYSSEY"))
+  )
+
+df_last <- df_proj |>
+  group_by(project) |>
+  filter(month == last(month)) |>
+  ungroup()
+
+col_map <- c("ASCENT"="#000000", "CATALYST"="#9A9A9A", "ODYSSEY"="#B8B8B8")
+lw_map  <- c("ASCENT"=2.4, "CATALYST"=1.4, "ODYSSEY"=1.4)
+```
+
+```{r}
+#| fig-width: 6.2
+#| fig-height: 3.3
+#| dpi: 180
+#| out-width: "100%"
+# -----------------------------
+# PLOT 2: FTE over plan by project
+# -----------------------------
+p2 <- ggplot(df_proj, aes(x = month, y = fte_over_plan, group = project, color = project)) +
+  geom_hline(yintercept = 0, color = "#CFCFCF", linewidth = 0.8) +
+  geom_line(aes(linewidth = project), alpha = 0.98) +
+  scale_color_manual(values = col_map) +
+  scale_linewidth_manual(values = lw_map) +
+  scale_y_continuous(
+    limits = c(-20, 200),
+    breaks = seq(-20, 200, 20)
+  ) +
+  labs(
+    title = "Number of FTE over plan by project",
+    x = NULL, y = "# FTE OVER PLAN"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(size = 9),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(6, 6, 6, 6)
+  )
+
+# Labels no final das linhas (direita)
+if (has_ggrepel) {
+  p2 <- p2 +
+    ggrepel::geom_text_repel(
+      data = df_last,
+      aes(label = project),
+      nudge_x = 0.35,
+      direction = "y",
+      hjust = 0,
+      size = 3.0,
+      segment.size = 0.2,
+      min.segment.length = 0,
+      box.padding = 0.2
+    ) +
+    coord_cartesian(xlim = c(1, length(months_2) + 0.8), clip = "off")
+} else {
+  p2 <- p2 +
+    geom_text(
+      data = df_last,
+      aes(label = project),
+      nudge_x = 0.25,
+      hjust = 0,
+      size = 3.0,
+      show.legend = FALSE
+    ) +
+    coord_cartesian(xlim = c(1, length(months_2) + 0.8), clip = "off")
+}
+
+p2
+```
+
+:::
+:::
+
+<div class="bottombar">Approve funding to cover the cost of additional resources and ensure projects are completed on time.</div>
